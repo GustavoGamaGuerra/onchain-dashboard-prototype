@@ -607,6 +607,11 @@
       <div class="tbody"><div class="trow trow--pairs"><span class="dex"><img src="${I("uni.svg")}" alt="">Uniswap V4</span><span>ACME/USDC</span><span><img class="net-ic" src="${I("currency-eth.svg")}" alt="Ethereum"></span><span>$1,324,893</span><span><span class="dot dot--green" role="img" aria-label="Cleared"></span></span></div></div>
     </div>`;
   function dashboard() {
+    // prototype: however the user returns to the dashboard (Go to dashboard, close ✕, menu, logo),
+    // a finished setup means an active account with transactions to show
+    if (S.account === "setup" && steps.every((st) => stepDone(st.id))) set({ account: "active", populated: true });
+    else if (S.account === "active" && !S.populated && !S.welcomePreview) set({ populated: true });
+    else if (S.account === "setup" && S.verify === "emailed" && steps.filter((st) => st.id !== "verify").every((st) => stepDone(st.id))) set({ account: "verifying" });
     let tx;
     if (S.account === "setup") tx = `<div class="empty"><p class="empty__title">Complete setting up your account!</p><button class="btn btn--primary btn--small" data-act="go-setup" style="height:36px"><span>Complete setup</span></button></div>`;
     else if (S.account === "verifying") tx = `<div class="empty" role="status"><span class="spinner" aria-hidden="true"></span><p class="empty__title">Your account is being verified.</p>${S.verify === "emailed" ? `<p class="t-sm c-muted">We’re waiting for ${esc(S.ownerEmail)} to confirm ownership through X.</p>` : `<p class="t-sm c-muted">This usually takes a few seconds.</p>`}</div>`;
@@ -1001,10 +1006,10 @@
     if (p === "setup") { set({ account: "setup" }); go(`#/setup/${firstOpenStep()}`); }
     if (p === "dash-setup") { set({ account: "setup", whitepaper: "", payNetwork: "", plan: false, verify: "none" }); go("#/dashboard"); }
     if (p === "dash-verifying") { set({ ...complete, account: "verifying", verify: "emailed", ownerEmail: S.ownerEmail || "owner@acme.com" }); go("#/dashboard"); }
-    if (p === "dash-welcome") { set({ ...complete, account: "active", populated: false }); go("#/dashboard"); }
-    if (p === "dash-populated") { set({ ...complete, account: "active", populated: true }); go("#/dashboard"); }
+    if (p === "dash-welcome") { set({ ...complete, account: "active", populated: false, welcomePreview: true }); go("#/dashboard"); }
+    if (p === "dash-populated") { set({ welcomePreview: false, ...complete, account: "active", populated: true }); go("#/dashboard"); }
     if (p === "transactions") { set({ ...complete, account: "active", populated: true }); go("#/transactions"); }
-    if (p === "settings") { set({ ...complete, account: "active" }); go("#/settings/project"); }
+    if (p === "settings") { set({ ...complete, account: "active", populated: true }); go("#/settings/project"); }
     if (p === "owner") go("#/owner");
     if (p === "logo") { set({ tickerImg: S.tickerImg ? "" : SAMPLE_LOGO }); render(); toast(S.tickerImg ? "Sample ACME ticker image applied" : "Ticker image removed"); }
     if (p === "fail") { set({ paymentFailed: !S.paymentFailed, retries: 0 }); render(); toast(S.paymentFailed ? "Simulating a failed subscription payment" : "Payment restored"); }
