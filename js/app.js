@@ -533,7 +533,7 @@
       if (fin) fin.addEventListener("click", async () => {
         await busy(fin, 700);
         // prototype: a fully verified account lands straight on a populated dashboard
-        if (S.verify === "connected") { set({ account: "active", populated: true }); go("#/dashboard"); toast("Setup complete — your account is active 🎉"); }
+        if (S.verify === "connected") { set({ account: "active", populated: false, visitedSettings: false }); go("#/dashboard"); toast("Setup complete — your account is active 🎉"); }
         else { set({ account: "verifying" }); go("#/dashboard"); }
       });
     }
@@ -548,7 +548,7 @@
   let activationTimer;
   function scheduleActivation() {
     clearTimeout(activationTimer);
-    activationTimer = setTimeout(() => { if (S.account === "verifying") { set({ account: "active", populated: true }); toast("Your account has been verified 🎉"); if (location.hash.startsWith("#/dashboard")) render(); } }, reduced ? 800 : 5000);
+    activationTimer = setTimeout(() => { if (S.account === "verifying") { set({ account: "active", populated: false }); toast("Your account has been verified 🎉"); if (location.hash.startsWith("#/dashboard")) render(); } }, reduced ? 800 : 5000);
   }
 
   // ---------- dashboard ----------
@@ -607,10 +607,10 @@
       <div class="tbody"><div class="trow trow--pairs"><span class="dex"><img src="${I("uni.svg")}" alt="">Uniswap V4</span><span>ACME/USDC</span><span><img class="net-ic" src="${I("currency-eth.svg")}" alt="Ethereum"></span><span>$1,324,893</span><span><span class="dot dot--green" role="img" aria-label="Cleared"></span></span></div></div>
     </div>`;
   function dashboard() {
-    // prototype: however the user returns to the dashboard (Go to dashboard, close ✕, menu, logo),
-    // a finished setup means an active account with transactions to show
-    if (S.account === "setup" && steps.every((st) => stepDone(st.id))) set({ account: "active", populated: true });
-    else if (S.account === "active" && !S.populated && !S.welcomePreview) set({ populated: true });
+    // prototype: however the user returns to the dashboard, a finished setup means an active account (Welcome state first)
+    if (S.account === "setup" && steps.every((st) => stepDone(st.id))) set({ account: "active", populated: false, visitedSettings: false });
+    // prototype: after the user has been through Settings, the dashboard shows transactions
+    else if (S.account === "active" && !S.populated && S.visitedSettings) set({ populated: true });
     else if (S.account === "setup" && S.verify === "emailed" && steps.filter((st) => st.id !== "verify").every((st) => stepDone(st.id))) set({ account: "verifying" });
     let tx;
     if (S.account === "setup") tx = `<div class="empty"><p class="empty__title">Complete setting up your account!</p><button class="btn btn--primary btn--small" data-act="go-setup" style="height:36px"><span>Complete setup</span></button></div>`;
@@ -1006,8 +1006,8 @@
     if (p === "setup") { set({ account: "setup" }); go(`#/setup/${firstOpenStep()}`); }
     if (p === "dash-setup") { set({ account: "setup", whitepaper: "", payNetwork: "", plan: false, verify: "none" }); go("#/dashboard"); }
     if (p === "dash-verifying") { set({ ...complete, account: "verifying", verify: "emailed", ownerEmail: S.ownerEmail || "owner@acme.com" }); go("#/dashboard"); }
-    if (p === "dash-welcome") { set({ ...complete, account: "active", populated: false, welcomePreview: true }); go("#/dashboard"); }
-    if (p === "dash-populated") { set({ welcomePreview: false, ...complete, account: "active", populated: true }); go("#/dashboard"); }
+    if (p === "dash-welcome") { set({ ...complete, account: "active", populated: false, visitedSettings: false }); go("#/dashboard"); }
+    if (p === "dash-populated") { set({ ...complete, account: "active", populated: true }); go("#/dashboard"); }
     if (p === "transactions") { set({ ...complete, account: "active", populated: true }); go("#/transactions"); }
     if (p === "settings") { set({ ...complete, account: "active", populated: true }); go("#/settings/project"); }
     if (p === "owner") go("#/owner");
@@ -1038,7 +1038,7 @@
       case "dashboard": html = dashboard(); bind = bindDashboard; break;
       case "setup": { const step = steps.some((s) => s.id === a) ? a : firstOpenStep(); html = setup(step); bind = () => bindSetup(step); break; }
       case "transactions": html = transactions(); bind = bindTransactions; break;
-      case "settings": { const page = settingsItems.some(([id]) => id === a) ? a : "project"; html = settings(page, b); bind = () => bindSettings(page); break; }
+      case "settings": { if (S.account === "active" && !S.visitedSettings) set({ visitedSettings: true }); const page = settingsItems.some(([id]) => id === a) ? a : "project"; html = settings(page, b); bind = () => bindSettings(page); break; }
       case "deactivated": html = settings("deactivate"); bind = () => { bindSettings("deactivate"); deactivatedModal(); }; break;
       case "owner": html = a === "done" ? ownerDone() : ownerLink(); break;
       default: location.hash = "#/signin"; return;
