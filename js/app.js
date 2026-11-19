@@ -532,8 +532,9 @@
       const fin = $("[data-act=finish-setup]");
       if (fin) fin.addEventListener("click", async () => {
         await busy(fin, 700);
-        set({ account: "verifying" }); go("#/dashboard");
-        if (S.verify === "connected") scheduleActivation();
+        // prototype: a fully verified account lands straight on a populated dashboard
+        if (S.verify === "connected") { set({ account: "active", populated: true }); go("#/dashboard"); toast("Setup complete — your account is active 🎉"); }
+        else { set({ account: "verifying" }); go("#/dashboard"); }
       });
     }
   }
@@ -547,7 +548,7 @@
   let activationTimer;
   function scheduleActivation() {
     clearTimeout(activationTimer);
-    activationTimer = setTimeout(() => { if (S.account === "verifying") { set({ account: "active" }); toast("Your account has been verified 🎉"); if (location.hash.startsWith("#/dashboard")) render(); } }, reduced ? 800 : 5000);
+    activationTimer = setTimeout(() => { if (S.account === "verifying") { set({ account: "active", populated: true }); toast("Your account has been verified 🎉"); if (location.hash.startsWith("#/dashboard")) render(); } }, reduced ? 800 : 5000);
   }
 
   // ---------- dashboard ----------
